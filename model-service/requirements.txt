@@ -1,0 +1,20 @@
+# ──────────────────────────────────────────────
+# model-service / requirements.txt
+# All Python dependencies for training + serving
+# ──────────────────────────────────────────────
+
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# Data & ML
+pandas>=2.1.0
+scikit-learn>=1.4.0
+joblib>=1.4.0
+numpy>=1.26.0
+
+# Validation (used by FastAPI)
+pydantic>=2.7.0
+
+# Environment variables
+python-dotenv>=1.0.0
