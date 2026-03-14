@@ -136,3 +136,61 @@ export async function getHealth(): Promise<HealthResponse> {
 
   return response.json();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARKET ANALYSIS API  (Spring Boot — port 8080)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MARKET_BASE_URL = config.marketApiUrl;
+
+export interface MarketSummary {
+  average_price: number;
+  property_count: number;
+  top_location: string;
+}
+
+export interface LocationPrice {
+  location: string;
+  average_price: number;
+  property_count: number;
+}
+
+export interface MarketProperty {
+  id: number;
+  location: string;
+  sqft: number;
+  beds: number;
+  baths: number;
+  year: number;
+  price: number;
+}
+
+/**
+ * GET /market/average-price  (alias: summary)
+ * Returns average price, property count, and top location.
+ */
+export async function getMarketSummary(): Promise<MarketSummary> {
+  const response = await fetch(`${MARKET_BASE_URL}/market/average-price`);
+  if (!response.ok) throw new Error("Failed to fetch market summary.");
+  return response.json();
+}
+
+/**
+ * GET /market/top-locations
+ * Returns all locations sorted by average price descending.
+ */
+export async function getTopLocations(): Promise<LocationPrice[]> {
+  const response = await fetch(`${MARKET_BASE_URL}/market/top-locations`);
+  if (!response.ok) throw new Error("Failed to fetch top locations.");
+  return response.json();
+}
+
+/**
+ * GET /market/properties
+ * Returns the full property list from the housing dataset.
+ */
+export async function getMarketProperties(): Promise<MarketProperty[]> {
+  const response = await fetch(`${MARKET_BASE_URL}/market/properties`);
+  if (!response.ok) throw new Error("Failed to fetch properties.");
+  return response.json();
+}

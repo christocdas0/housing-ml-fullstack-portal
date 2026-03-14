@@ -22,26 +22,16 @@ import {
   Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import { BarChart2, Download, MapPin, Home, DollarSign } from "lucide-react";
-import { config } from "@/lib/config";
+import {
+  getMarketSummary,
+  getTopLocations,
+  getMarketProperties,
+  type MarketSummary,
+  type LocationPrice,
+  type MarketProperty,
+} from "@/services/api";
 // ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface MarketSummary {
-  average_price: number;
-  property_count: number;
-  top_location: string;
-}
-
-interface LocationPrice {
-  location: string;
-  average_price: number;
-  property_count: number;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MOCK DATA (used when Spring Boot API is not running)
-// Replace with real API calls once Spring Boot is ready
+// MOCK DATA (fallback when Spring Boot API is not running)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MOCK_SUMMARY: MarketSummary = {
@@ -79,19 +69,31 @@ const formatFull = (v: number) =>
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function MarketAnalysisPage() {
-  const [summary]    = useState<MarketSummary>(MOCK_SUMMARY);
-  const [locations]  = useState<LocationPrice[]>(MOCK_LOCATIONS);
-  const [properties, setProperties] = useState(MOCK_PROPERTIES);
+  const [summary,    setSummary]    = useState<MarketSummary>(MOCK_SUMMARY);
+  const [locations,  setLocations]  = useState<LocationPrice[]>(MOCK_LOCATIONS);
+  const [properties, setProperties] = useState<MarketProperty[]>(MOCK_PROPERTIES);
   const [filter, setFilter]         = useState("");
   const [sortKey, setSortKey]       = useState<"price" | "sqft" | "year">("price");
   const [sortDir, setSortDir]       = useState<"asc" | "desc">("desc");
   const [apiStatus, setApiStatus]   = useState<"checking" | "online" | "offline">("checking");
 
-  // Check if Spring Boot API is reachable
+  // Load real data from Spring Boot API; fall back to mock data if unavailable
   useEffect(() => {
-    fetch(`${config.marketApiUrl}/market/average-price`)
-      .then(() => setApiStatus("online"))
-      .catch(() => setApiStatus("offline"));
+    Promise.all([
+      getMarketSummary(),
+      getTopLocations(),
+      getMarketProperties(),
+    ])
+      .then(([summaryData, locationsData, propertiesData]) => {
+        setSummary(summaryData);
+        setLocations(locationsData);
+        setProperties(propertiesData);
+        setApiStatus("online");
+      })
+      .catch(() => {
+        // API offline — keep mock data already in state
+        setApiStatus("offline");
+      });
   }, []);
 
   // Filter + sort
