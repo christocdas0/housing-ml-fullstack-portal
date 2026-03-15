@@ -86,7 +86,7 @@ export default function ChartView({ history }: ChartViewProps) {
               formatter={(value: number) =>
                 new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value)
               }
-              contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
+              contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", color: "#1e293b" }}
             />
             <Bar dataKey="price" radius={[6, 6, 0, 0]}>
               {chartData.map((_, i) => (

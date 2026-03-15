@@ -133,11 +133,11 @@ export default function MarketAnalysisPage() {
             <div className="bg-violet-100 text-violet-600 p-2 rounded-lg">
               <BarChart2 size={20} />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900">
+            <h1 className="text-2xl font-extrabold text-slate-800">
               Property Market Analysis
             </h1>
           </div>
-          <p className="text-slate-500 text-sm ml-11">
+          <p className="text-slate-600 text-sm ml-11">
             Market insights powered by the Java Spring Boot backend.
           </p>
         </div>
@@ -161,12 +161,12 @@ export default function MarketAnalysisPage() {
       {/* ── Summary Cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { icon: DollarSign, label: "Average Price",    value: formatFull(summary.average_price), color: "violet" },
-          { icon: Home,       label: "Total Properties", value: summary.property_count.toString(),  color: "sky"    },
-          { icon: MapPin,     label: "Top Location",     value: summary.top_location,               color: "emerald"},
-        ].map(({ icon: Icon, label, value, color }) => (
+          { icon: DollarSign, label: "Average Price",    value: formatFull(summary.average_price), iconClass: "bg-violet-100 text-violet-600" },
+          { icon: Home,       label: "Total Properties", value: summary.property_count.toString(),  iconClass: "bg-sky-100 text-sky-600"     },
+          { icon: MapPin,     label: "Top Location",     value: summary.top_location,               iconClass: "bg-emerald-100 text-emerald-600" },
+        ].map(({ icon: Icon, label, value, iconClass }) => (
           <div key={label} className="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
-            <div className={`inline-flex p-2 rounded-lg mb-3 bg-${color}-100 text-${color}-600`}>
+            <div className={`inline-flex p-2 rounded-lg mb-3 ${iconClass}`}>
               <Icon size={18} />
             </div>
             <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">{label}</p>
@@ -188,7 +188,7 @@ export default function MarketAnalysisPage() {
               <YAxis type="category" dataKey="location" tick={{ fontSize: 12, fill: "#64748b" }} width={90} />
               <Tooltip
                 formatter={(v: number) => formatFull(v)}
-                contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", color: "#1e293b" }}
               />
               <Bar dataKey="average_price" radius={[0, 6, 6, 0]} name="Avg Price">
                 {locations.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -205,7 +205,7 @@ export default function MarketAnalysisPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="location" tick={{ fontSize: 11, fill: "#94a3b8" }} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} />
-              <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }} />
+              <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", color: "#1e293b" }} />
               <Bar dataKey="property_count" radius={[6, 6, 0, 0]} name="Properties">
                 {locations.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
@@ -241,10 +241,10 @@ export default function MarketAnalysisPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-96 overflow-y-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-slate-100 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
                 <th className="px-4 py-3">Location</th>
                 <th className="px-4 py-3 cursor-pointer hover:text-violet-600" onClick={() => handleSort("sqft")}>
                   Sq Ft {sortKey === "sqft" ? (sortDir === "desc" ? "↓" : "↑") : ""}
@@ -263,10 +263,10 @@ export default function MarketAnalysisPage() {
               {displayed.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-slate-700">{p.location}</td>
-                  <td className="px-4 py-3">{p.sqft.toLocaleString()}</td>
-                  <td className="px-4 py-3">{p.beds}</td>
-                  <td className="px-4 py-3">{p.baths}</td>
-                  <td className="px-4 py-3">{p.year}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.sqft.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.beds}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.baths}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.year}</td>
                   <td className="px-4 py-3 text-right font-bold text-violet-700">{formatFull(p.price)}</td>
                 </tr>
               ))}

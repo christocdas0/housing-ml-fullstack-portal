@@ -48,10 +48,10 @@ export default function PredictionTable({ history, onClear }: PredictionTablePro
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-72 overflow-y-auto">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-slate-100 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">
               <th className="px-4 py-3">Time</th>
               <th className="px-4 py-3">Sq Ft</th>
               <th className="px-4 py-3">Beds</th>
@@ -64,12 +64,12 @@ export default function PredictionTable({ history, onClear }: PredictionTablePro
           <tbody className="divide-y divide-slate-100">
             {history.map((record) => (
               <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-slate-400">{record.timestamp}</td>
-                <td className="px-4 py-3 font-medium">{record.features.square_footage.toLocaleString()}</td>
-                <td className="px-4 py-3">{record.features.bedrooms}</td>
-                <td className="px-4 py-3">{record.features.bathrooms}</td>
-                <td className="px-4 py-3">{record.features.year_built}</td>
-                <td className="px-4 py-3">{record.features.school_rating}</td>
+                <td className="px-4 py-3 text-slate-500">{record.timestamp}</td>
+                <td className="px-4 py-3 font-medium text-slate-700">{record.features.square_footage.toLocaleString()}</td>
+                <td className="px-4 py-3 text-slate-700">{record.features.bedrooms}</td>
+                <td className="px-4 py-3 text-slate-700">{record.features.bathrooms}</td>
+                <td className="px-4 py-3 text-slate-700">{record.features.year_built}</td>
+                <td className="px-4 py-3 text-slate-700">{record.features.school_rating}</td>
                 <td className="px-4 py-3 text-right font-bold text-sky-700">
                   {formatCurrency(record.predicted_price)}
                 </td>
