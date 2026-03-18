@@ -139,9 +139,8 @@ housing-ml-fullstack-portal/
 │   ├── SETUP_GUIDE.md               ← Step-by-step run instructions (local + Docker)
 │   ├── API_REFERENCE.md             ← All endpoints with request/response examples
 │
-├── README.md                        ← This file
-└── datasets/
-    └── housing_dataset.csv
+├── docker-compose.yml               ← One-command startup for all 3 services
+└── README.md                        ← This file
 ```
 
 ---
@@ -269,6 +268,27 @@ Recommended order for a demo:
 |----------|---------------|
 | [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Full setup for local, Docker, env vars, port conflicts, troubleshooting |
 | [docs/API_REFERENCE.md](docs/API_REFERENCE.md) | Every endpoint — request body, response shape, curl examples, field constraints |
+
+
+---
+
+## Key Design Decisions
+
+- Used Linear Regression as a baseline model for fast training and interpretability.
+- Separated ML model service from frontend to follow microservice architecture.
+- Used FastAPI for high performance async API handling.
+- Implemented Spring Boot service to simulate a secondary backend with independent responsibilities.
+- Used Next.js App Router for better routing and server/client component separation.
+
+---
+
+## Future Improvements
+
+- Replace Linear Regression with advanced models (e.g. Random Forest)
+- Add database instead of in-memory dataset
+- Add authentication and role-based access
+- Deploy services using Kubernetes
+- Add caching (Redis) for market analytics
 
 ---
 
