@@ -138,7 +138,6 @@ housing-ml-fullstack-portal/
 ├── docs/
 │   ├── SETUP_GUIDE.md               ← Step-by-step run instructions (local + Docker)
 │   ├── API_REFERENCE.md             ← All endpoints with request/response examples
-│   └── STATUS_REPORT.md             ← What's done, what's pending, known gaps
 │
 ├── README.md                        ← This file
 └── datasets/
