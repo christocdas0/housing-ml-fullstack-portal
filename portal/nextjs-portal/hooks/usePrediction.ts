@@ -60,6 +60,9 @@ export function usePrediction() {
   // All predictions made in this session (for the history table)
   const [history, setHistory] = useState<PredictionRecord[]>([]);
 
+  // Up to 4 predictions pinned for side-by-side comparison
+  const [comparison, setComparison] = useState<PredictionRecord[]>([]);
+
   // True while we are waiting for the API response
   const [loading, setLoading] = useState(false);
 
@@ -106,15 +109,33 @@ export function usePrediction() {
   // ── Clear history ──────────────────────────────────────────────────────────
   const clearHistory = () => setHistory([]);
 
+  // ── Comparison ─────────────────────────────────────────────────────────────
+  const addToComparison = (record: PredictionRecord) => {
+    setComparison((prev) => {
+      if (prev.length >= 4) return prev;                          // max 4
+      if (prev.some((r) => r.id === record.id)) return prev;     // no duplicates
+      return [...prev, record];
+    });
+  };
+
+  const removeFromComparison = (id: number) =>
+    setComparison((prev) => prev.filter((r) => r.id !== id));
+
+  const clearComparison = () => setComparison([]);
+
   return {
     features,
     result,
     history,
+    comparison,
     loading,
     error,
     updateFeature,
     predict,
     reset,
     clearHistory,
+    addToComparison,
+    removeFromComparison,
+    clearComparison,
   };
 }

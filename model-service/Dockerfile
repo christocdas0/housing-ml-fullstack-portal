@@ -23,6 +23,9 @@ FROM python:3.12-slim
 # Set working directory inside the container
 WORKDIR /app
 
+# ── Install curl (needed for Docker health check) ────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # ── Install dependencies first (Docker caches this layer) ──────────────────
 # Copying requirements.txt before the rest of the code means Docker
 # only re-installs packages when requirements.txt changes, not on every build.

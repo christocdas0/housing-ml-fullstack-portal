@@ -3,6 +3,7 @@ package com.example.market.service;
 import com.example.market.dto.LocationPrice;
 import com.example.market.dto.MarketSummary;
 import com.example.market.dto.PropertyDto;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +39,7 @@ public class MarketService {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+    @Cacheable("summary")
     public MarketSummary getSummary() {
         double avg = properties.stream()
                 .mapToDouble(PropertyDto::price)
@@ -56,6 +58,7 @@ public class MarketService {
         );
     }
 
+    @Cacheable("topLocations")
     public List<LocationPrice> getTopLocations() {
         Map<String, List<PropertyDto>> byLocation = properties.stream()
                 .collect(Collectors.groupingBy(PropertyDto::location));
@@ -76,6 +79,7 @@ public class MarketService {
                 .collect(Collectors.toList());
     }
 
+    @Cacheable("properties")
     public List<PropertyDto> getProperties() {
         return Collections.unmodifiableList(properties);
     }

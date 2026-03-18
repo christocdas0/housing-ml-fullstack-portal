@@ -21,14 +21,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { BarChart2, Download, MapPin, Home, DollarSign } from "lucide-react";
+import { BarChart2, Download, FileText, MapPin, Home, DollarSign, Zap, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   getMarketSummary,
   getTopLocations,
   getMarketProperties,
+  predictPrice,
   type MarketSummary,
   type LocationPrice,
   type MarketProperty,
+  type HouseFeatures,
 } from "@/services/api";
 // ─────────────────────────────────────────────────────────────────────────────
 // MOCK DATA (fallback when Spring Boot API is not running)
@@ -64,6 +68,31 @@ const formatCurrency = (v: number) => `$${(v / 1000).toFixed(0)}k`;
 const formatFull = (v: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
 
+const DEFAULT_WHAT_IF: HouseFeatures = {
+  square_footage: 1500,
+  bedrooms: 3,
+  bathrooms: 2,
+  year_built: 2000,
+  lot_size: 6500,
+  distance_to_city_center: 4.0,
+  school_rating: 7.5,
+};
+
+const WHAT_IF_FIELDS: {
+  key: keyof HouseFeatures;
+  label: string;
+  min: number; max: number; step: number;
+  format: (v: number) => string;
+}[] = [
+  { key: "square_footage",          label: "Square Footage",          min: 500,  max: 5000,  step: 50,  format: (v) => `${v.toLocaleString()} sq ft` },
+  { key: "bedrooms",                label: "Bedrooms",                min: 1,    max: 10,    step: 1,   format: (v) => `${v}` },
+  { key: "bathrooms",               label: "Bathrooms",               min: 1,    max: 6,     step: 0.5, format: (v) => `${v}` },
+  { key: "year_built",              label: "Year Built",              min: 1950, max: 2025,  step: 1,   format: (v) => `${v}` },
+  { key: "lot_size",                label: "Lot Size",                min: 1000, max: 20000, step: 100, format: (v) => `${v.toLocaleString()} sq ft` },
+  { key: "distance_to_city_center", label: "Distance to City Center", min: 0.5,  max: 30,    step: 0.5, format: (v) => `${v} mi` },
+  { key: "school_rating",           label: "School Rating",           min: 1,    max: 10,    step: 0.1, format: (v) => `${v} / 10` },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,6 +105,12 @@ export default function MarketAnalysisPage() {
   const [sortKey, setSortKey]       = useState<"price" | "sqft" | "year">("price");
   const [sortDir, setSortDir]       = useState<"asc" | "desc">("desc");
   const [apiStatus, setApiStatus]   = useState<"checking" | "online" | "offline">("checking");
+
+  // What-If tool state
+  const [whatIfFeatures, setWhatIfFeatures] = useState<HouseFeatures>(DEFAULT_WHAT_IF);
+  const [whatIfPrice,    setWhatIfPrice]    = useState<number | null>(null);
+  const [whatIfLoading,  setWhatIfLoading]  = useState(false);
+  const [whatIfError,    setWhatIfError]    = useState<string | null>(null);
 
   // Load real data from Spring Boot API; fall back to mock data if unavailable
   useEffect(() => {
@@ -105,10 +140,94 @@ export default function MarketAnalysisPage() {
       sortDir === "desc" ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]
     );
 
+  // What-If predict
+  const runWhatIf = async () => {
+    setWhatIfLoading(true);
+    setWhatIfError(null);
+    try {
+      const res = await predictPrice(whatIfFeatures);
+      setWhatIfPrice(res.predicted_price);
+    } catch {
+      setWhatIfError("Could not reach the ML service. Make sure FastAPI is running on port 8000.");
+    } finally {
+      setWhatIfLoading(false);
+    }
+  };
+
   // Toggle sort
   const handleSort = (key: "price" | "sqft" | "year") => {
     if (sortKey === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
     else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  // Export to PDF
+  const exportPDF = () => {
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(109, 40, 217); // violet-700
+    doc.text("Property Market Analysis Report", 14, 18);
+
+    // Subtitle
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+
+    // Summary stats
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text("Market Summary", 14, 36);
+    autoTable(doc, {
+      startY: 40,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Average Price", formatFull(summary.average_price)],
+        ["Total Properties", summary.property_count.toString()],
+        ["Top Location",  summary.top_location],
+      ],
+      headStyles:  { fillColor: [109, 40, 217] },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+      margin: { left: 14, right: 14 },
+      tableWidth: 80,
+    });
+
+    // Location breakdown
+    const afterSummary = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Price by Location", 14, afterSummary);
+    autoTable(doc, {
+      startY: afterSummary + 4,
+      head: [["Location", "Avg Price", "Properties"]],
+      body: locations.map((l) => [l.location, formatFull(l.average_price), l.property_count.toString()]),
+      headStyles: { fillColor: [109, 40, 217] },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+      margin: { left: 14, right: 14 },
+    });
+
+    // Properties table (filtered/sorted)
+    const afterLocations = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Properties (${displayed.length} shown)`, 14, afterLocations);
+    autoTable(doc, {
+      startY: afterLocations + 4,
+      head: [["Location", "Sq Ft", "Beds", "Baths", "Year", "Price"]],
+      body: displayed.map((p) => [
+        p.location,
+        p.sqft.toLocaleString(),
+        p.beds,
+        p.baths,
+        p.year,
+        formatFull(p.price),
+      ]),
+      headStyles: { fillColor: [109, 40, 217] },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.save("market_analysis_report.pdf");
   };
 
   // Export to CSV
@@ -187,7 +306,7 @@ export default function MarketAnalysisPage() {
               <XAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: "#94a3b8" }} />
               <YAxis type="category" dataKey="location" tick={{ fontSize: 12, fill: "#64748b" }} width={90} />
               <Tooltip
-                formatter={(v: number) => formatFull(v)}
+                formatter={(v) => typeof v === "number" ? formatFull(v) : String(v ?? "")}
                 contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", color: "#1e293b" }}
               />
               <Bar dataKey="average_price" radius={[0, 6, 6, 0]} name="Avg Price">
@@ -214,6 +333,101 @@ export default function MarketAnalysisPage() {
         </div>
       </div>
 
+      {/* ── What-If Analysis Tool ────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+          <div className="bg-violet-100 text-violet-600 p-2 rounded-lg">
+            <Zap size={18} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800">What-If Analysis</h3>
+            <p className="text-xs text-slate-400">Adjust property features and compare the predicted price against the market average</p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Sliders grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+            {WHAT_IF_FIELDS.map(({ key, label, min, max, step, format }) => (
+              <div key={key}>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-medium text-slate-700">{label}</label>
+                  <span className="text-xs font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                    {format(whatIfFeatures[key])}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={min} max={max} step={step}
+                  value={whatIfFeatures[key]}
+                  onChange={(e) =>
+                    setWhatIfFeatures((prev) => ({ ...prev, [key]: parseFloat(e.target.value) }))
+                  }
+                  className="w-full h-2 accent-violet-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-slate-400 mt-0.5">
+                  <span>{format(min)}</span>
+                  <span>{format(max)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Action row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex gap-3">
+              <button
+                onClick={runWhatIf}
+                disabled={whatIfLoading}
+                className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+              >
+                {whatIfLoading ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+                {whatIfLoading ? "Predicting…" : "Run Analysis"}
+              </button>
+              <button
+                onClick={() => { setWhatIfFeatures(DEFAULT_WHAT_IF); setWhatIfPrice(null); setWhatIfError(null); }}
+                className="text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2.5 rounded-lg transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+
+            {/* Result comparison */}
+            {whatIfPrice !== null && (
+              <div className="flex flex-wrap items-center gap-4 sm:ml-4">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400 uppercase tracking-wide">Predicted Price</span>
+                  <span className="text-2xl font-extrabold text-violet-700">{formatFull(whatIfPrice)}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400 uppercase tracking-wide">Market Average</span>
+                  <span className="text-2xl font-extrabold text-slate-700">{formatFull(summary.average_price)}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400 uppercase tracking-wide">Difference</span>
+                  <span className={`flex items-center gap-1 text-xl font-extrabold ${
+                    whatIfPrice >= summary.average_price ? "text-emerald-600" : "text-rose-600"
+                  }`}>
+                    {whatIfPrice >= summary.average_price
+                      ? <TrendingUp size={18} />
+                      : <TrendingDown size={18} />}
+                    {whatIfPrice >= summary.average_price ? "+" : "-"}
+                    {formatFull(Math.abs(whatIfPrice - summary.average_price))}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Error */}
+          {whatIfError && (
+            <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-4 py-2">
+              {whatIfError}
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* ── Properties Table ────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
@@ -236,7 +450,15 @@ export default function MarketAnalysisPage() {
               className="flex items-center gap-1.5 text-sm bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               <Download size={14} />
-              Export CSV
+              CSV
+            </button>
+            {/* Export PDF */}
+            <button
+              onClick={exportPDF}
+              className="flex items-center gap-1.5 text-sm bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              <FileText size={14} />
+              PDF
             </button>
           </div>
         </div>

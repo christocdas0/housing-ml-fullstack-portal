@@ -16,7 +16,8 @@ import { usePrediction } from "@/hooks/usePrediction";
 import PredictionForm from "@/components/PredictionForm";
 import PredictionTable from "@/components/PredictionTable";
 import ChartView from "@/components/ChartView";
-import { TrendingUp, AlertCircle } from "lucide-react";
+import ComparisonView from "@/components/ComparisonView";
+import { TrendingUp, AlertCircle, GitCompare, Plus } from "lucide-react";
 
 // Format number as USD currency
 const formatCurrency = (value: number) =>
@@ -31,12 +32,16 @@ export default function EstimatorPage() {
     features,
     result,
     history,
+    comparison,
     loading,
     error,
     updateFeature,
     predict,
     reset,
     clearHistory,
+    addToComparison,
+    removeFromComparison,
+    clearComparison,
   } = usePrediction();
 
   return (
@@ -109,6 +114,19 @@ export default function EstimatorPage() {
                   <p className="font-bold">{result.input_features.school_rating} / 10</p>
                 </div>
               </div>
+              {/* Add to Compare button */}
+              <button
+                onClick={() => history[0] && addToComparison(history[0])}
+                disabled={comparison.length >= 4 || (history.length > 0 && comparison.some((r) => r.id === history[0]?.id))}
+                className="mt-4 flex items-center gap-2 text-xs font-semibold bg-white/15 hover:bg-white/25 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors w-full justify-center"
+              >
+                <Plus size={13} />
+                {comparison.some((r) => r.id === history[0]?.id)
+                  ? "Already in Comparison"
+                  : comparison.length >= 4
+                  ? "Comparison Full (max 4)"
+                  : "Add to Comparison"}
+              </button>
             </div>
           ) : (
             <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 text-center">
@@ -126,7 +144,23 @@ export default function EstimatorPage() {
 
       {/* ── Prediction History Table ─────────────────────────────────── */}
       <PredictionTable history={history} onClear={clearHistory} />
-
+      {/* ── Comparison View ─────────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <GitCompare size={18} className="text-sky-500" />
+          <h2 className="text-lg font-bold text-slate-800">Property Comparison</h2>
+          {comparison.length > 0 && (
+            <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-semibold">
+              {comparison.length} / 4
+            </span>
+          )}
+        </div>
+        <ComparisonView
+          comparison={comparison}
+          onRemove={removeFromComparison}
+          onClear={clearComparison}
+        />
+      </div>
     </div>
   );
 }

@@ -1,0 +1,49 @@
+services:
+
+  # ── ML Model Service (Python FastAPI) ──────────────────────────────────────
+  model-service:
+    build:
+      context: .                          # repo root — needed for datasets/ folder
+      dockerfile: model-service/Dockerfile
+    container_name: housing-model-service
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Market Analysis API (Java Spring Boot) ─────────────────────────────────
+  market-api:
+    build:
+      context: ./market-analysis-backend
+      dockerfile: Dockerfile
+    container_name: housing-market-api
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/market/summary"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ── Next.js Portal ─────────────────────────────────────────────────────────
+  portal:
+    build:
+      context: ./portal/nextjs-portal
+      dockerfile: Dockerfile
+      args:
+        # Browser talks to host-mapped ports, so localhost works here
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_MARKET_API_URL: http://localhost:8080
+    container_name: housing-portal
+    ports:
+      - "3000:3000"
+    depends_on:
+      model-service:
+        condition: service_healthy
+      market-api:
+        condition: service_healthy
