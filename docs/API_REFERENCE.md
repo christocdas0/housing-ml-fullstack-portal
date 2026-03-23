@@ -337,6 +337,74 @@ curl http://localhost:8080/market/properties
 
 ---
 
+### POST /market/predict
+
+Proxies a house price prediction request through the Java backend to the Python FastAPI ML service.
+This endpoint satisfies the interview requirement: **"Java backend: integrate with the ML model from Task 1"**.
+
+The What-If analysis tool on the Market Analysis dashboard uses this endpoint.
+
+**Request Body:** Same 7 house features as `POST /predict` on FastAPI.
+
+```json
+{
+  "square_footage": 1550,
+  "bedrooms": 3,
+  "bathrooms": 2.0,
+  "year_built": 1997,
+  "lot_size": 6800,
+  "distance_to_city_center": 4.1,
+  "school_rating": 7.6
+}
+```
+
+**Response `200 OK`:**
+```json
+{
+  "predicted_price": 241587.50,
+  "input_features": {
+    "square_footage": 1550,
+    "bedrooms": 3,
+    "bathrooms": 2.0,
+    "year_built": 1997,
+    "lot_size": 6800,
+    "distance_to_city_center": 4.1,
+    "school_rating": 7.6
+  }
+}
+```
+
+**Error Responses:**
+- `503 Service Unavailable` — FastAPI ML service is not reachable
+
+**Internal flow:**
+```
+POST /market/predict (Java :8080)
+  └─► POST /predict/ (FastAPI :8000)
+        └─► sklearn model.predict()
+        ◄── { predicted_price: 241587.50 }
+  ◄── { predicted_price: 241587.50 }
+```
+
+**Docker note:** Inside Docker, Java reaches FastAPI via `http://model-service:8000` (the Docker service name), not `localhost:8000`. This is configured via the `ML_SERVICE_URL` environment variable in `docker-compose.yml`.
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/market/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "square_footage": 1550,
+    "bedrooms": 3,
+    "bathrooms": 2.0,
+    "year_built": 1997,
+    "lot_size": 6800,
+    "distance_to_city_center": 4.1,
+    "school_rating": 7.6
+  }'
+```
+
+---
+
 ## Dataset Reference
 
 The source data (`datasets/housing_dataset.csv`) has these columns:

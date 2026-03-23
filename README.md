@@ -42,19 +42,18 @@ Both connect to a **scikit-learn Linear Regression model** trained on housing da
   │  POST /predict/batch    │   │  GET /market/top-locations   │
   │  GET  /model-info       │   │  GET /market/properties      │
   │  GET  /health           │   │  GET /market/average-price   │
-  │                         │   │                              │
-  │  LinearRegression model │   │  In-memory CSV processing    │
-  └─────────────────────────┘   └──────────────────────────────┘
-            ▲
-            │ Trained on
-  ┌──────────────────────┐
-  │  housing_dataset.csv │
-  │  50 properties       │
+  │                         │   │  POST /market/predict ───┐   │
+  │  LinearRegression model │   │  In-memory CSV processing │   │
+  └──────────▲──────────────┘   └──────────────────────────┼──┘
+             │ Trained on                  proxies to       │
+  ┌──────────────────────┐                                  │
+  │  housing_dataset.csv │◄─────────────────────────────────┘
+  │  50 properties       │  (Java calls FastAPI internally)
   └──────────────────────┘
 ```
 
-**How a prediction works:**
-1. User moves sliders in the Estimator → frontend calls `POST /predict` on FastAPI
+**How a prediction works (Estimator):**
+1. User moves sliders in the Estimator → frontend calls `POST /predict` on FastAPI directly
 2. FastAPI runs `sklearn model.predict()` → returns `predicted_price`
 3. Frontend displays the price and adds it to the history chart
 
@@ -62,6 +61,12 @@ Both connect to a **scikit-learn Linear Regression model** trained on housing da
 1. Spring Boot reads `housing_dataset.csv` at startup → holds 50 properties in memory
 2. Frontend calls `/market/properties`, `/summary`, `/top-locations`
 3. Dashboard renders Recharts charts + a filterable, sortable table
+
+**How What-If analysis works (Market page):**
+1. User adjusts sliders → frontend calls `POST /market/predict` on **Java Spring Boot**
+2. Java receives the request and proxies it to `POST /predict` on FastAPI internally
+3. FastAPI runs the ML model → returns price → Java forwards it back to the frontend
+4. This satisfies the requirement: *"Java backend: integrate with the ML model from Task 1"*
 
 ---
 
