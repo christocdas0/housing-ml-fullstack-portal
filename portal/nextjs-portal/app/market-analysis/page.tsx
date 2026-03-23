@@ -28,7 +28,7 @@ import {
   getMarketSummary,
   getTopLocations,
   getMarketProperties,
-  predictPrice,
+  marketPredictPrice,
   type MarketSummary,
   type LocationPrice,
   type MarketProperty,
@@ -140,15 +140,15 @@ export default function MarketAnalysisPage() {
       sortDir === "desc" ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]
     );
 
-  // What-If predict
+  // What-If predict — routes through Java Spring Boot → FastAPI (Task 1 integration)
   const runWhatIf = async () => {
     setWhatIfLoading(true);
     setWhatIfError(null);
     try {
-      const res = await predictPrice(whatIfFeatures);
+      const res = await marketPredictPrice(whatIfFeatures);
       setWhatIfPrice(res.predicted_price);
     } catch {
-      setWhatIfError("Could not reach the ML service. Make sure FastAPI is running on port 8000.");
+      setWhatIfError("Could not reach the market API. Make sure Java (port 8080) and FastAPI (port 8000) are both running.");
     } finally {
       setWhatIfLoading(false);
     }

@@ -194,3 +194,26 @@ export async function getMarketProperties(): Promise<MarketProperty[]> {
   if (!response.ok) throw new Error("Failed to fetch properties.");
   return response.json();
 }
+
+/**
+ * POST /market/predict  (Java Spring Boot → proxies to FastAPI)
+ * Used by the What-If analysis tool on the Market Analysis page.
+ * Routes through Java instead of calling FastAPI directly, satisfying
+ * the requirement: "Java backend: integrate with the ML model from Task 1".
+ */
+export async function marketPredictPrice(
+  features: HouseFeatures
+): Promise<PredictionResponse> {
+  const response = await fetch(`${MARKET_BASE_URL}/market/predict`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(features),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Prediction via Java service failed.");
+  }
+
+  return response.json();
+}

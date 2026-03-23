@@ -23,6 +23,14 @@ services:
     container_name: housing-market-api
     ports:
       - "8080:8080"
+    environment:
+      # In Docker, containers talk to each other by service name, not localhost.
+      # "model-service" is the service name defined above in this compose file.
+      # application.properties reads: ml.service.url=${ML_SERVICE_URL:http://localhost:8000}
+      ML_SERVICE_URL: http://model-service:8000
+    depends_on:
+      model-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/market/summary"]
       interval: 15s

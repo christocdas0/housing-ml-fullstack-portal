@@ -2,11 +2,16 @@ package com.example.market.controller;
 
 import com.example.market.dto.LocationPrice;
 import com.example.market.dto.MarketSummary;
+import com.example.market.dto.PredictRequest;
+import com.example.market.dto.PredictResponse;
 import com.example.market.dto.PropertyDto;
 import com.example.market.service.MarketService;
+import com.example.market.service.MlPredictionService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * MarketController
@@ -19,13 +24,14 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/market")
-@CrossOrigin(origins = "http://localhost:3000")
 public class MarketController {
 
     private final MarketService marketService;
+    private final MlPredictionService mlPredictionService;
 
-    public MarketController(MarketService marketService) {
+    public MarketController(MarketService marketService, MlPredictionService mlPredictionService) {
         this.marketService = marketService;
+        this.mlPredictionService = mlPredictionService;
     }
 
     /**
@@ -64,5 +70,30 @@ public class MarketController {
     @GetMapping("/properties")
     public List<PropertyDto> getProperties() {
         return marketService.getProperties();
+    }
+
+    /**
+     * POST /market/predict
+     * Proxies the request to the Python FastAPI ML model service and returns
+     * the predicted house price. Satisfies the requirement:
+     * "Java backend: integrate with the ML model container from Task 1".
+     *
+     * Request body:
+     * {
+     *   "square_footage": 1550, "bedrooms": 3, "bathrooms": 2.0,
+     *   "year_built": 1997, "lot_size": 6800,
+     *   "distance_to_city_center": 4.1, "school_rating": 7.6
+     * }
+     *
+     * Returns 200 with predicted_price, or 503 if FastAPI is unreachable.
+     */
+    @PostMapping("/predict")
+    public ResponseEntity<?> predict(@RequestBody PredictRequest request) {
+        try {
+            PredictResponse response = mlPredictionService.predict(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(503).body(Map.of("error", e.getMessage()));
+        }
     }
 }
